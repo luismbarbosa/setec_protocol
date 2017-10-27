@@ -1,8 +1,3 @@
-/* 
- * udpserver.c - A simple UDP echo server 
- * usage: udpserver <port>
- */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -15,12 +10,33 @@
 
 #define BUFSIZE 1024
 
-/*
- * error - wrapper for perror
- */
 void error(char *msg) {
   perror(msg);
   exit(1);
+}
+
+
+/* get substring from delimiter */
+char *multi_tok(char *input, char *delimiter) {
+    static char *string;
+    if (input != NULL)
+        string = input;
+
+    if (string == NULL)
+        return string;
+
+    char *end = strstr(string, delimiter);
+    if (end == NULL) {
+        char *temp = string;
+        string = NULL;
+        return temp;
+    }
+
+    char *temp = string;
+
+    *end = '\0';
+    string = end + strlen(delimiter);
+    return temp;
 }
 
 int main(int argc, char **argv) {
@@ -34,6 +50,10 @@ int main(int argc, char **argv) {
   char *hostaddrp; /* dotted decimal host addr string */
   int optval; /* flag value for setsockopt */
   int n; /* message byte size */
+  const char *message[3];
+  char *buf_split;
+  char command[10];
+  int i = 0;
 
   /* 
    * check command line arguments 
@@ -43,6 +63,11 @@ int main(int argc, char **argv) {
     exit(1);
   }
   portno = atoi(argv[1]);
+
+  message[0] = "direction";
+  message[1] = "ofdm";
+  message[2] = "qam";
+
 
   /* 
    * socket: create the parent socket 
@@ -90,26 +115,28 @@ int main(int argc, char **argv) {
     if (n < 0)
       error("ERROR in recvfrom");
 
-    /* 
-     * gethostbyaddr: determine who sent the datagram
-     */
-    hostp = gethostbyaddr((const char *)&clientaddr.sin_addr.s_addr, 
-			  sizeof(clientaddr.sin_addr.s_addr), AF_INET);
-    if (hostp == NULL)
-      error("ERROR on gethostbyaddr");
-    hostaddrp = inet_ntoa(clientaddr.sin_addr);
-    if (hostaddrp == NULL)
-      error("ERROR on inet_ntoa\n");
-    printf("server received datagram from %s (%s)\n", 
-	   hostp->h_name, hostaddrp);
-    printf("server received %d/%d bytes: %s\n", strlen(buf), n, buf);
-    
-    /* 
-     * sendto: echo the input back to the client 
-     */
-    n = sendto(sockfd, buf, strlen(buf), 0, 
-	       (struct sockaddr *) &clientaddr, clientlen);
-    if (n < 0) 
-      error("ERROR in sendto");
+    printf("Message received: %s\n", buf);
+    buf_split = multi_tok(buf, ":");
+
+    while (buf_split != NULL) {
+    	printf("%s\n", buf_split);
+    	command[i] = buf_split;
+  	printf("command: %s\n", command[i]);
+  	i++;
+  		
+    	/* check if received an command 
+    	if(strcmp(buf_split, message[0]) == 0 || strcmp(buf_split, message[1]) == 0 || strcmp(buf_split, message[2]) == 0)
+    		command = buf_split;
+    		printf("command received: %s\n", command);
+	
+	if(strcmp(buf_split, message[0]) == 0)
+		printf("Change direction received\n");
+	else if(strcmp(buf_split, message[1]) ==0 )
+		printf("ofdm change\n");
+	else if(strcmp(buf_split, message[2]) ==0 )
+		printf("qam change\n");
+  	buf_split = multi_tok(NULL, ":");*/
+
+    }
   }
 }
