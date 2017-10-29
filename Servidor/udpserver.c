@@ -16,29 +16,6 @@ void error(char *msg) {
 }
 
 
-/* get substring from delimiter */
-char *multi_tok(char *input, char *delimiter) {
-    static char *string;
-    if (input != NULL)
-        string = input;
-
-    if (string == NULL)
-        return string;
-
-    char *end = strstr(string, delimiter);
-    if (end == NULL) {
-        char *temp = string;
-        string = NULL;
-        return temp;
-    }
-
-    char *temp = string;
-
-    *end = '\0';
-    string = end + strlen(delimiter);
-    return temp;
-}
-
 int main(int argc, char **argv) {
   int sockfd; /* socket */
   int portno; /* port to listen on */
@@ -50,9 +27,9 @@ int main(int argc, char **argv) {
   char *hostaddrp; /* dotted decimal host addr string */
   int optval; /* flag value for setsockopt */
   int n; /* message byte size */
-  const char *message[3];
+  const char *gui_commands[3];
   char *buf_split;
-  char command[10];
+  char *command_parameters[10];
   int i = 0;
 
   /* 
@@ -64,9 +41,9 @@ int main(int argc, char **argv) {
   }
   portno = atoi(argv[1]);
 
-  message[0] = "direction";
-  message[1] = "ofdm";
-  message[2] = "qam";
+  gui_commands[0] = "direction";
+  gui_commands[1] = "ofdm";
+  gui_commands[2] = "qam";
 
 
   /* 
@@ -113,30 +90,43 @@ int main(int argc, char **argv) {
     n = recvfrom(sockfd, buf, BUFSIZE, 0,
 		 (struct sockaddr *) &clientaddr, &clientlen);
     if (n < 0)
-      error("ERROR in recvfrom");
+      error("ERROR receiving packet");
 
     printf("Message received: %s\n", buf);
-    buf_split = multi_tok(buf, ":");
+    buf_split = strtok(buf, ":");
+    
+    /* loop to iterate over the message received; split message by the delimiter ":" */
+    i = 0;
+    while (buf_split != NULL)
+    {
+	command_parameters[i++] = buf_split;
+	printf("Message[%d] received: %s\n", i, buf_split);
+	buf_split = strtok(NULL, ":");
+    }
+    
+    /* is a change direction command */
+    if(strcmp(command_parameters[0], gui_commands[0]) == 0){	
+    	printf("Please turn the direction to: %s\n", command_parameters[1]);
+    }
+    /* is a ofdm command */
+    else if(strcmp(command_parameters[0], gui_commands[1]) == 0){  	
+    	printf("Please use now ofdm\n");
+    	printf("Number of carriers: %s\n", command_parameters[1]);
+    	printf("Guard time: %s\n", command_parameters[2]);
+    	printf("# pilot frequencies: %s\n", command_parameters[3]);
+    	printf("Error correction? %s\n", command_parameters[4]);
+    }    	    	    	    	
 
-    while (buf_split != NULL) {
-    	printf("%s\n", buf_split);
-    	command[i] = buf_split;
-  	printf("command: %s\n", command[i]);
-  	i++;
-  		
-    	/* check if received an command 
-    	if(strcmp(buf_split, message[0]) == 0 || strcmp(buf_split, message[1]) == 0 || strcmp(buf_split, message[2]) == 0)
-    		command = buf_split;
-    		printf("command received: %s\n", command);
-	
-	if(strcmp(buf_split, message[0]) == 0)
-		printf("Change direction received\n");
-	else if(strcmp(buf_split, message[1]) ==0 )
-		printf("ofdm change\n");
-	else if(strcmp(buf_split, message[2]) ==0 )
-		printf("qam change\n");
-  	buf_split = multi_tok(NULL, ":");*/
-
+    /* is a qam command */
+    else if(strcmp(command_parameters[0], gui_commands[2]) == 0){  	
+    	printf("Please use now qam\n");
+    	printf("Number of symbols: %s\n", command_parameters[1]);
+    	printf("Magnitude: %s\n", command_parameters[2]);
+    }
+    
+    /* not known command received; maybe send a message to GUI team to resend previous command */  	
+    else{
+    	printf("Sorry but I don't recognize this command: %s\nPlease resend!\n", command_parameters[0]);  	
     }
   }
 }
