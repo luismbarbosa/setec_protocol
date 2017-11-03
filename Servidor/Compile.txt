@@ -1,1 +1,1 @@
-gcc client.c -o client -ln
+gcc client.c -o client -lm
