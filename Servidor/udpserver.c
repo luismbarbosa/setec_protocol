@@ -41,10 +41,11 @@ int main(int argc, char **argv) {
   }
   portno = atoi(argv[1]);
 
-  gui_commands[0] = "direction";
-  gui_commands[1] = "ofdm";
-  gui_commands[2] = "qam";
-  gui_commands[3] = "zoom";
+  gui_commands[0] = "x";
+  gui_commands[1] = "y";
+  gui_commands[2] = "ofdm";
+  gui_commands[3] = "qam";
+  gui_commands[4] = "zoom";
 
 
   /* 
@@ -105,12 +106,16 @@ int main(int argc, char **argv) {
 	buf_split = strtok(NULL, ":");
     }
     
-    /* is a change direction command */
+    /* is a change direction command in x axis */
     if(strcmp(command_parameters[0], gui_commands[0]) == 0){	
-    	printf("Please turn the direction to: %s\n", command_parameters[1]);
+    	printf("Please turn the direction (left, right) to: %s\n", command_parameters[1]);
+    }
+    
+    else if(strcmp(command_parameters[0], gui_commands[1]) == 0){  	
+    	printf("Please turn the direction (front, back) to: %s\n", command_parameters[1]);
     }
     /* is a ofdm command */
-    else if(strcmp(command_parameters[0], gui_commands[1]) == 0){  	
+    else if(strcmp(command_parameters[0], gui_commands[2]) == 0){  	
     	printf("Please use now ofdm\n");
     	printf("Number of carriers: %s\n", command_parameters[1]);
     	printf("Guard time: %s\n", command_parameters[2]);
@@ -119,18 +124,18 @@ int main(int argc, char **argv) {
     }    	    	    	    	
 
     /* is a qam command */
-    else if(strcmp(command_parameters[0], gui_commands[2]) == 0){  	
+    else if(strcmp(command_parameters[0], gui_commands[3]) == 0){  	
     	printf("Please use now qam\n");
     	printf("Number of symbols: %s\n", command_parameters[1]);
     	printf("Magnitude: %s\n", command_parameters[2]);
     }
     
-    else if(strcmp(command_parameters[0], gui_commands[3]) == 0){  	
+    else if(strcmp(command_parameters[0], gui_commands[4]) == 0){  	
     	printf("Please use change camera zoom\n");
     	printf("Zoom range to use: %s\n", command_parameters[1]);
     }
     
-    /* not known command received; maybe send a message to GUI team to resend previous command */  	
+    /* not known command received; maybe send a message to GUI team to resend previous command */
     else{
     	printf("Sorry but I don't recognize this command: %s\nPlease resend!\n", command_parameters[0]);  	
     }
