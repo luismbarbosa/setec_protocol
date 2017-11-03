@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
   gui_commands[0] = "direction";
   gui_commands[1] = "ofdm";
   gui_commands[2] = "qam";
+  gui_commands[3] = "zoom";
 
 
   /* 
@@ -122,6 +123,11 @@ int main(int argc, char **argv) {
     	printf("Please use now qam\n");
     	printf("Number of symbols: %s\n", command_parameters[1]);
     	printf("Magnitude: %s\n", command_parameters[2]);
+    }
+    
+    else if(strcmp(command_parameters[0], gui_commands[3]) == 0){  	
+    	printf("Please use change camera zoom\n");
+    	printf("Zoom range to use: %s\n", command_parameters[1]);
     }
     
     /* not known command received; maybe send a message to GUI team to resend previous command */  	
