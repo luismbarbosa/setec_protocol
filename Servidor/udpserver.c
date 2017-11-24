@@ -7,6 +7,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <fcntl.h>
 
 #define BUFSIZE 1024
 
@@ -31,6 +34,11 @@ int main(int argc, char **argv) {
   char *buf_split;
   char *command_parameters[10];
   int i = 0;
+  fd_set readfds; 
+  int rv;
+  struct timeval tv;
+
+
 
   /* 
    * check command line arguments 
@@ -52,8 +60,11 @@ int main(int argc, char **argv) {
    * socket: create the parent socket 
    */
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockfd < 0) 
+
+  if (sockfd < 0)
     error("ERROR opening socket");
+
+  fcntl(sockfd, F_SETFL, O_NONBLOCK); 
 
   /* setsockopt: Handy debugging trick that lets 
    * us rerun the server immediately after we kill it; 
@@ -84,60 +95,72 @@ int main(int argc, char **argv) {
    */
   clientlen = sizeof(clientaddr);
   while (1) {
+  
+    FD_ZERO(&readfds);
+    FD_SET(sockfd, &readfds);
+    
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
 
     /*
      * recvfrom: receive a UDP datagram from a client
      */
     bzero(buf, BUFSIZE);
-    n = recvfrom(sockfd, buf, BUFSIZE, 0,
-		 (struct sockaddr *) &clientaddr, &clientlen);
-    if (n < 0)
-      error("ERROR receiving packet");
+    rv = select(sockfd + 1, &readfds, NULL, NULL, &tv); 
+    
+    if(rv == 1){
+	    n = recvfrom(sockfd, buf, BUFSIZE, 0,
+			 (struct sockaddr *) &clientaddr, &clientlen);
+	    if (n < 0)
+	      error("ERROR receiving packet");
+	    
+	    buf_split = strtok(buf, ":");
+	    
+	    /* loop to iterate over the message received; split message by the delimiter ":" */
+	    i = 0;
+	    while (buf_split != NULL)
+	    {
+		command_parameters[i++] = buf_split;
+		printf("Message[%d] received: %s\n", i, buf_split);
+		buf_split = strtok(NULL, ":");
+	    }
+	    
+	    /* is a change direction command in x axis */
+	    if(strcmp(command_parameters[0], gui_commands[0]) == 0){	
+	    	printf("Please turn the direction (left, right) to: %s\n", command_parameters[1]);
+	    }
+	    
+	    else if(strcmp(command_parameters[0], gui_commands[1]) == 0){  	
+	    	printf("Please turn the direction (front, back) to: %s\n", command_parameters[1]);
+	    }
+	    /* is a ofdm command */
+	    else if(strcmp(command_parameters[0], gui_commands[2]) == 0){  	
+	    	printf("Please use now ofdm\n");
+	    	printf("Number of carriers: %s\n", command_parameters[1]);
+	    	printf("Guard time: %s\n", command_parameters[2]);
+	    	printf("# pilot frequencies: %s\n", command_parameters[3]);
+	    	printf("Error correction? %s\n", command_parameters[4]);
+	    }    	    	    	    	
 
-    printf("Message received: %s\n", buf);
-    buf_split = strtok(buf, ":");
-    
-    /* loop to iterate over the message received; split message by the delimiter ":" */
-    i = 0;
-    while (buf_split != NULL)
-    {
-	command_parameters[i++] = buf_split;
-	printf("Message[%d] received: %s\n", i, buf_split);
-	buf_split = strtok(NULL, ":");
-    }
-    
-    /* is a change direction command in x axis */
-    if(strcmp(command_parameters[0], gui_commands[0]) == 0){	
-    	printf("Please turn the direction (left, right) to: %s\n", command_parameters[1]);
-    }
-    
-    else if(strcmp(command_parameters[0], gui_commands[1]) == 0){  	
-    	printf("Please turn the direction (front, back) to: %s\n", command_parameters[1]);
-    }
-    /* is a ofdm command */
-    else if(strcmp(command_parameters[0], gui_commands[2]) == 0){  	
-    	printf("Please use now ofdm\n");
-    	printf("Number of carriers: %s\n", command_parameters[1]);
-    	printf("Guard time: %s\n", command_parameters[2]);
-    	printf("# pilot frequencies: %s\n", command_parameters[3]);
-    	printf("Error correction? %s\n", command_parameters[4]);
-    }    	    	    	    	
+	    /* is a qam command */
+	    else if(strcmp(command_parameters[0], gui_commands[3]) == 0){  	
+	    	printf("Please use now qam\n");
+	    	printf("Number of symbols: %s\n", command_parameters[1]);
+	    	printf("Magnitude: %s\n", command_parameters[2]);
+	    }
+	    
+	    else if(strcmp(command_parameters[0], gui_commands[4]) == 0){  	
+	    	printf("Please use change camera zoom\n");
+	    	printf("Zoom range to use: %s\n", command_parameters[1]);
+	    }
+	    
+	    /* not known command received; maybe send a message to GUI team to resend previous command */
+	    else{
+	    	printf("Sorry but I don't recognize this command: %s\nPlease resend!\n", command_parameters[0]);  	
+	    }
 
-    /* is a qam command */
-    else if(strcmp(command_parameters[0], gui_commands[3]) == 0){  	
-    	printf("Please use now qam\n");
-    	printf("Number of symbols: %s\n", command_parameters[1]);
-    	printf("Magnitude: %s\n", command_parameters[2]);
+	    printf("Message received: %s\n", buf);
     }
-    
-    else if(strcmp(command_parameters[0], gui_commands[4]) == 0){  	
-    	printf("Please use change camera zoom\n");
-    	printf("Zoom range to use: %s\n", command_parameters[1]);
-    }
-    
-    /* not known command received; maybe send a message to GUI team to resend previous command */
-    else{
-    	printf("Sorry but I don't recognize this command: %s\nPlease resend!\n", command_parameters[0]);  	
-    }
+
   }
 }
