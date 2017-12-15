@@ -23,7 +23,7 @@ void error(char *msg) {
     exit(0);
 }
 
-void sendmessage(int table_size, int buf_size, double * b_time, double * b_freq, int sockfd){
+void sendmessage(int table_size, int buf_size, double * b_time, double * b_imag, double * b_freq, int sockfd){
     //int sockfd,
     int portno, n=1;
     int serverlen;
@@ -31,9 +31,11 @@ void sendmessage(int table_size, int buf_size, double * b_time, double * b_freq,
     struct hostent *server;
     char *hostname;
 
-    char buf[sizeof(double)*buf_size+sizeof(char)*buf_size];
+    char buf[(sizeof(double)*buf_size+sizeof(char)*buf_size)*2];
     char int_buf[(sizeof(double)*buf_size+sizeof(char)*buf_size)/2+1];
+    char int_bufi[(sizeof(double)*buf_size+sizeof(char)*buf_size)/2+1];
     char int_buf_time[sizeof(double)+1];
+    char int_buf_imag[sizeof(double)+1];
     char int_buf_freq[sizeof(double)+1];
 
    	int n_times = table_size / buf_size;
@@ -66,23 +68,30 @@ void sendmessage(int table_size, int buf_size, double * b_time, double * b_freq,
   for(i=0; i<n_times; i++){
     memset(buf, 0, sizeof(buf));
     memset(int_buf, 0, sizeof(int_buf));
+    memset(int_bufi, 0, sizeof(int_bufi));
     for(k=i*buf_size/2; k<i*buf_size/2+buf_size/2;k++){
       memset(int_buf_time, 0, sizeof(int_buf_time));
+      memset(int_buf_imag, 0, sizeof(int_buf_imag));
       memset(int_buf_freq, 0, sizeof(int_buf_freq));
       sprintf(int_buf_time, "%f", b_time[k]);
+      sprintf(int_buf_imag, "%f", b_imag[k]);
       sprintf(int_buf_freq, "%f", b_freq[k]);
       strcat(buf,int_buf_time);
-      strcat(int_buf, int_buf_freq);
+      strcat(int_buf,int_buf_imag);
+      strcat(int_bufi,int_buf_freq);
       if(k != i*buf_size/2+buf_size/2-1){
         strcat(int_buf,":");
+        strcat(int_bufi,":");
         strcat(buf, ":");
       }
     }
     strcat(buf,"|");
     strcat(buf, int_buf);
+    strcat(buf,"|");
+    strcat(buf, int_bufi);
     n = sendto(sockfd, buf, strlen(buf), 0,(struct sockaddr *) &serveraddr, serverlen);
     if (n < 0) error("ERROR in sendto");
-    fprintf(stderr, "Buffer: %s \t i=%d \t times: %d\n", buf, i, n_times);
+    //fprintf(stderr, "Buffer: %s \t i=%d \t times: %d\n", buf, i, n_times);
   }
 }
 
@@ -103,7 +112,7 @@ int main () {
   int sockfd; //=  malloc(sizeof(int));
   sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-  sendmessage(TABLE_SIZE, buf_size, btime, bfreq, sockfd);
+  sendmessage(TABLE_SIZE, buf_size, btime, btime, bfreq, sockfd);
   close(sockfd);
   return(0);
 }
